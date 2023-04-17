@@ -23,7 +23,14 @@ public class Main {
             }
         });
         t2.start();
-        client2.start();
 
+        Thread t3 = new Thread(()-> {
+            try {
+                client2.start();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        t3.start();
     }
 }
