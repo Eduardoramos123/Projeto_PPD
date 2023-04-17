@@ -26,7 +26,12 @@ public class Client {
             // information between client and client handler
             while (true)
             {
-                System.out.println(dis.readUTF());
+                String line = dis.readUTF();
+                while( !line.equals("done"))
+                {
+                    System.out.println( line );
+                    line = dis.readUTF();
+                }
                 String tosend = scn.nextLine();
                 dos.writeUTF(tosend);
 

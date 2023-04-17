@@ -235,8 +235,6 @@ public class Game_Server {
 
                 dos_player1.writeUTF(getBoard());
 
-                System.out.println("HELLLLLLLLLP");
-
                 if (checkWin('o')) {
                     dos_player1.writeUTF("player O won!");
                     dos_player2.writeUTF("player O won!");
@@ -271,6 +269,7 @@ public class Game_Server {
                 }
 
                 dos_player1.writeUTF("Select Line(0-2):\n");
+                dos_player1.writeUTF("done");
 
                 String received;
 
@@ -280,6 +279,7 @@ public class Game_Server {
 
 
                 dos_player1.writeUTF("Select Row(0-2):\n");
+                dos_player1.writeUTF("done");
 
                 received = dis_player1.readUTF();
 
@@ -327,19 +327,24 @@ public class Game_Server {
                 }
 
                 dos_player2.writeUTF("Select Line(0-2):\n");
+                dos_player2.writeUTF("done");
+
 
                 received = dis_player2.readUTF();
+
 
 
                 line = Integer.parseInt(received);
 
                 dos_player2.writeUTF("Select Row(0-2):\n");
+                dos_player2.writeUTF("done");
 
                 received = dis_player2.readUTF();
 
                 row = Integer.parseInt(received);
 
                 PlayerOPlace(line, row);
+                System.out.flush();
             }
         }
 
