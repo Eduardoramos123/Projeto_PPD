@@ -10,6 +10,11 @@ public class Game_Server {
     private static ServerSocket server;
     private static int port = 9876;
 
+    public static void main(String[] args) throws IOException {
+        start(2);
+    }
+
+
     public static class Game extends Thread {
         private Socket player1;
         private Socket player2;
@@ -236,8 +241,11 @@ public class Game_Server {
                 dos_player1.writeUTF(getBoard());
 
                 if (checkWin('o')) {
+                    dos_player2.writeUTF(getBoard());
                     dos_player1.writeUTF("player O won!");
                     dos_player2.writeUTF("player O won!");
+                    dos_player1.writeUTF("done");
+                    dos_player2.writeUTF("done");
                     try
                     {
                         // closing resources
@@ -252,8 +260,11 @@ public class Game_Server {
                     return;
                 }
                 if (checkTie()) {
+                    dos_player2.writeUTF(getBoard());
                     dos_player1.writeUTF("Tie!");
                     dos_player2.writeUTF("Tie!");
+                    dos_player1.writeUTF("done");
+                    dos_player2.writeUTF("done");
                     try
                     {
                         // closing resources
@@ -294,8 +305,11 @@ public class Game_Server {
 
 
                 if (checkWin('x')) {
+                    dos_player1.writeUTF(getBoard());
                     dos_player1.writeUTF("player X won!");
                     dos_player2.writeUTF("player X won!");
+                    dos_player1.writeUTF("done");
+                    dos_player2.writeUTF("done");
                     try
                     {
                         // closing resources
@@ -310,8 +324,11 @@ public class Game_Server {
                     return;
                 }
                 if (checkTie()) {
+                    dos_player1.writeUTF(getBoard());
                     dos_player1.writeUTF("Tie!");
                     dos_player2.writeUTF("Tie!");
+                    dos_player1.writeUTF("done");
+                    dos_player2.writeUTF("done");
                     try
                     {
                         // closing resources
@@ -360,6 +377,7 @@ public class Game_Server {
 
     }
 
+
     public class Player {
         public String name;
         private String password;
@@ -400,7 +418,7 @@ public class Game_Server {
 
     }
 
-    public void start(int n) throws IOException {
+    public static void start(int n) throws IOException {
         Lobby lobby = new Lobby();
         lobby.start(n);
     }

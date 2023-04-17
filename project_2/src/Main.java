@@ -5,6 +5,7 @@ public class Main {
         Game_Server server = new Game_Server();
         Client client1 = new Client();
         Client client2 = new Client();
+        Client client3 = new Client();
 
         Thread t = new Thread(()-> {
             try {
@@ -32,5 +33,15 @@ public class Main {
             }
         });
         t3.start();
+
+        Thread t4 = new Thread(()-> {
+            try {
+                client3.start();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        t4.start();
+
     }
 }

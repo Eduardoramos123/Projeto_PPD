@@ -6,7 +6,11 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
-    public void start() throws IOException
+
+    public static void main(String[] args) throws IOException {
+        start();
+    }
+    public static void start() throws IOException
     {
         try
         {
