@@ -2,17 +2,20 @@ import java.io.*;
 import java.lang.ClassNotFoundException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Game_Server {
     private static ServerSocket server;
     private static int port = 9876;
 
+    private Map<String, String> log_in = new HashMap<>();
+    private static List<String> players_name = new ArrayList<>();
+
     public static void main(String[] args) throws IOException {
         start(2);
     }
+
+
 
 
     public static class Game extends Thread {
@@ -244,6 +247,10 @@ public class Game_Server {
                     dos_player2.writeUTF(getBoard());
                     dos_player1.writeUTF("player O won!");
                     dos_player2.writeUTF("player O won!");
+
+                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -263,6 +270,10 @@ public class Game_Server {
                     dos_player2.writeUTF(getBoard());
                     dos_player1.writeUTF("Tie!");
                     dos_player2.writeUTF("Tie!");
+
+                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -308,6 +319,10 @@ public class Game_Server {
                     dos_player1.writeUTF(getBoard());
                     dos_player1.writeUTF("player X won!");
                     dos_player2.writeUTF("player X won!");
+
+                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -327,6 +342,11 @@ public class Game_Server {
                     dos_player1.writeUTF(getBoard());
                     dos_player1.writeUTF("Tie!");
                     dos_player2.writeUTF("Tie!");
+
+                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -435,20 +455,29 @@ public class Game_Server {
 
                 System.out.println("Assigning new thread for this client");
 
-                DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-                players.add(socket);
 
-                System.out.println("Teste size: " + players.size());
+                //authenticate
+                // 0. Class Super vai ter um mapa com conta/token se tiver 1 quer dizer que a ligação caiu
+                // 0.1 func que recupera sessão
+                // 1. verifica se ja tem conta: file.txt nome | pass
+                // 2. Se tiver fixe, dalhe token
+                // 3. Regista e mete no file.txt e log-in
 
-                if (players.size() >= n) {
-                    Thread t = new Game(players.get(0), players.get(1));
 
-                    t.start();
+                new Thread() {
+                    public void run() {
+                        try {
+                            fila(socket, n);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }.start();
 
-                    players.remove(0);
-                    players.remove(0);
-                }
+
+
+                //auth.logout();
 
 
                 // create a new thread object
@@ -459,9 +488,176 @@ public class Game_Server {
             }
         }
 
+        public void fila(Socket socket, int n) throws IOException {
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            Authentication auth = new Authentication(socket);
+            auth.menu();
+
+            dos.writeUTF("In queue!");
+            players.add(socket);
+            players_name.add(auth.name);
+
+            System.out.println("Teste size: " + players.size());
+
+            if (players.size() >= n) {
+                dos.writeUTF("Starting Game...");
+
+                Thread t = new Game(players.get(0), players.get(1));
+
+                t.start();
+
+                players.remove(0);
+                players.remove(0);
+            }
+        }
 
     }
 
+    public static class Authentication{
+        // protocol for user registration
+        // persist the registration data in a file.
+        private Socket socket;
+        private DataInputStream dis;
+        private DataOutputStream dos;
+        public String name;
+
+
+        public Authentication(Socket socket) throws IOException {
+            this.socket = socket;
+
+            this.dis = new DataInputStream(socket.getInputStream());
+            this.dos = new DataOutputStream(socket.getOutputStream());
+            this.name = null;
+        }
+
+        public void menu() throws IOException {
+            while (true) {
+                dos.writeUTF("");
+                dos.writeUTF("--------------------------");
+                dos.writeUTF("        Tic-Tac-Toe");
+                dos.writeUTF("--------------------------");
+                dos.writeUTF("");
+                dos.writeUTF("Choose mode:");
+                dos.writeUTF("    1 - Register");
+                dos.writeUTF("    2 - Login");
+                dos.writeUTF("done");
+
+                String received;
+
+                received = dis.readUTF();
+
+                int line = Integer.parseInt(received);
+
+                System.out.println(line);
+
+                if (line == 1) {
+                    if (register()) {
+                        dos.writeUTF("Registration Complete");
+                        break;
+                    }
+                }
+
+                if (line == 2) {
+                    if (login()) {
+                        break;
+                    }
+                }
+
+            }
+
+            return;
+        }
+
+        public boolean register() throws IOException {
+
+            dos.writeUTF("");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("        Register");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("Username: ");
+            dos.writeUTF("done");
+
+            String name;
+
+            name = dis.readUTF();
+
+            this.name = name;
+
+
+
+            dos.writeUTF("Password: ");
+            dos.writeUTF("done");
+
+            String pass;
+
+            pass = dis.readUTF();
+
+            String fin = name + " | " + pass + "\n";
+
+            File file = new File("users.txt");
+            FileWriter fr = new FileWriter(file, true);
+            BufferedWriter br = new BufferedWriter(fr);
+            br.write(fin);
+
+            br.close();
+            fr.close();
+
+            return true;
+        }
+
+        public boolean login() throws IOException {
+
+            dos.writeUTF("");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("        Login");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("Username: ");
+            dos.writeUTF("done");
+
+            String name;
+
+            name = dis.readUTF();
+
+            this.name = name;
+
+
+            dos.writeUTF("Password: ");
+            dos.writeUTF("done");
+
+            String pass;
+
+            pass = dis.readUTF();
+
+            String fin = name + " | " + pass;
+
+
+
+            File file = new File("users.txt");
+            Scanner scanner = new Scanner(file);
+
+            int lineNum = 0;
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                lineNum++;
+                System.out.println(line);
+                if(line.equals(fin)) {
+                    dos.writeUTF("Login Successful!");
+                    return true;
+                }
+            }
+
+            dos.writeUTF("Login Failed!");
+            return false;
+        }
+
+        public void logout() throws IOException {
+            dos.writeUTF("");
+            dos.writeUTF("You Have been Logged out!");
+            dos.writeUTF("Please write \"Exit\"");
+            dos.writeUTF("done");
+        }
+
+    }
 
 }
 
