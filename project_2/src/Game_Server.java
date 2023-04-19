@@ -7,9 +7,9 @@ import java.util.*;
 public class Game_Server {
     private static ServerSocket server;
     private static int port = 9876;
-
-    private Map<String, String> log_in = new HashMap<>();
     private static List<String> players_name = new ArrayList<>();
+    private static Map<String, ConWrapper> tokens = new HashMap<>();
+
 
     public static void main(String[] args) throws IOException {
         start(2);
@@ -17,6 +17,34 @@ public class Game_Server {
 
 
 
+    public static class ConWrapper {
+        private List<List<Character>> gameSpace;
+        private Socket op_socket;
+
+        private String op_name;
+
+        private boolean first;
+
+
+        public ConWrapper(List<List<Character>> gs, Socket oponent, String op, boolean f) {
+            gameSpace = gs;
+            op_socket = oponent;
+            op_name = op;
+            first = f;
+        }
+
+        public List<List<Character>> getGameSpace() {
+            return gameSpace;
+        }
+
+        public Socket getOp_socket() {
+            return op_socket;
+        }
+
+        public String getOp_name() {
+            return op_name;
+        }
+    }
 
     public static class Game extends Thread {
         private Socket player1;
@@ -26,6 +54,8 @@ public class Game_Server {
         DataOutputStream dos_player1;
         DataInputStream dis_player2;
         DataOutputStream dos_player2;
+        private String player1_name;
+        private String player2_name;
 
         private List<List<Character>> gameSpace = new ArrayList<>();
 
@@ -41,9 +71,11 @@ public class Game_Server {
             dis_player2 = null;
             dos_player1 = null;
             dos_player2 = null;
+            player1_name = null;
+            player2_name = null;
         }
 
-        public Game(Socket player1, Socket player2) throws IOException {
+        public Game(Socket player1, Socket player2, String name1, String name2, List<List<Character>> gs) throws IOException {
             this.player1 = player1;
             this.player2 = player2;
 
@@ -53,14 +85,14 @@ public class Game_Server {
             this.dos_player1 = new DataOutputStream(player1.getOutputStream());
             this.dos_player2 = new DataOutputStream(player2.getOutputStream());
 
-            for (int i = 0; i < 3; i++) {
-                List<Character> v = new ArrayList<>();
-                for (int j = 0; j < 3; j++) {
-                    v.add(' ');
-                }
-                gameSpace.add(v);
-            }
+            this.player1_name = name1;
+            this.player2_name = name2;
 
+            this.gameSpace = gs;
+        }
+
+        private void changeGameSpace(List<List<Character>> gs) {
+            gameSpace = gs;
         }
 
         private boolean horizontalWin(Character sym) {
@@ -237,11 +269,24 @@ public class Game_Server {
         }
 
         public void TCP_gameLoop() throws IOException {
+            dos_player1.writeUTF("");
+            dos_player1.writeUTF(player1_name + " VS " + player2_name);
+            dos_player1.writeUTF("");
+
+            dos_player2.writeUTF("");
+            dos_player2.writeUTF(player1_name + " VS " + player2_name);
+            dos_player2.writeUTF("");
+
 
             while (true) {
 
+                try {
+                    dos_player1.writeUTF(getBoard());
+                } catch (IOException e) {
+                    player1_disc();
+                    return;
+                }
 
-                dos_player1.writeUTF(getBoard());
 
                 if (checkWin('o')) {
                     dos_player2.writeUTF(getBoard());
@@ -250,6 +295,10 @@ public class Game_Server {
 
                     dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+
+                    tokens.remove(player1_name);
+                    tokens.remove(player2_name);
+
 
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
@@ -274,6 +323,10 @@ public class Game_Server {
                     dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
 
+                    tokens.remove(player1_name);
+                    tokens.remove(player2_name);
+
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -290,29 +343,41 @@ public class Game_Server {
                     return;
                 }
 
-                dos_player1.writeUTF("Select Line(0-2):\n");
-                dos_player1.writeUTF("done");
-
                 String received;
+                int line;
+                int row;
 
-                received = dis_player1.readUTF();
-
-                int line = Integer.parseInt(received);
-
-
-                dos_player1.writeUTF("Select Row(0-2):\n");
-                dos_player1.writeUTF("done");
-
-                received = dis_player1.readUTF();
-
-                int row = Integer.parseInt(received);
+                try {
+                    dos_player1.writeUTF("Select Line(0-2):\n");
+                    dos_player1.writeUTF("done");
 
 
-                PlayerXPlace(line, row);
+                    received = dis_player1.readUTF();
+
+                    line = Integer.parseInt(received);
 
 
+                    dos_player1.writeUTF("Select Row(0-2):\n");
+                    dos_player1.writeUTF("done");
 
-                dos_player2.writeUTF(getBoard());
+                    received = dis_player1.readUTF();
+
+                    row = Integer.parseInt(received);
+
+
+                    PlayerXPlace(line, row);
+                } catch (IOException e) {
+                    player1_disc();
+
+                    return;
+                }
+
+                try {
+                    dos_player2.writeUTF(getBoard());
+                } catch (IOException e) {
+                    player2_disc();
+                    return;
+                }
 
 
                 if (checkWin('x')) {
@@ -323,6 +388,10 @@ public class Game_Server {
                     dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
 
+                    tokens.remove(player1_name);
+                    tokens.remove(player2_name);
+
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -347,6 +416,9 @@ public class Game_Server {
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
 
 
+                    tokens.remove(player1_name);
+                    tokens.remove(player2_name);
+
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
                     try
@@ -363,26 +435,59 @@ public class Game_Server {
                     return;
                 }
 
-                dos_player2.writeUTF("Select Line(0-2):\n");
-                dos_player2.writeUTF("done");
+                try {
+                    dos_player2.writeUTF("Select Line(0-2):\n");
+                    dos_player2.writeUTF("done");
 
 
-                received = dis_player2.readUTF();
+                    received = dis_player2.readUTF();
 
 
 
-                line = Integer.parseInt(received);
+                    line = Integer.parseInt(received);
 
-                dos_player2.writeUTF("Select Row(0-2):\n");
-                dos_player2.writeUTF("done");
+                    dos_player2.writeUTF("Select Row(0-2):\n");
+                    dos_player2.writeUTF("done");
 
-                received = dis_player2.readUTF();
+                    received = dis_player2.readUTF();
 
-                row = Integer.parseInt(received);
+                    row = Integer.parseInt(received);
 
-                PlayerOPlace(line, row);
+                    PlayerOPlace(line, row);
+                } catch (IOException e) {
+                    player2_disc();
+                    return;
+                }
+
+
                 System.out.flush();
             }
+        }
+
+        public void player1_disc() throws IOException {
+            ConWrapper wrapper = new ConWrapper(gameSpace, player2, player2_name, true);
+
+            System.out.println(player1_name);
+
+            tokens.put(player1_name, wrapper);
+
+
+            dos_player2.writeUTF("Player " + player1_name + " Disconnected... Waiting to reconnect");
+
+
+            return;
+        }
+
+        public void player2_disc() throws IOException {
+            ConWrapper wrapper = new ConWrapper(gameSpace, player1, player1_name, false);
+
+            System.out.println(player2_name);
+
+            tokens.put(player2_name, wrapper);
+
+            dos_player1.writeUTF("Player " + player2_name + " Disconnected... Waiting to reconnect");
+
+            return;
         }
 
         @Override
@@ -491,7 +596,23 @@ public class Game_Server {
         public void fila(Socket socket, int n) throws IOException {
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             Authentication auth = new Authentication(socket);
-            auth.menu();
+            int check = auth.menu();
+
+            if (check == 1) {
+
+                if (tokens.get(auth.name).first) {
+                    Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace);
+                    q.start();
+                }
+                else {
+                    Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace);
+                    q.start();
+                }
+
+
+
+                return;
+            }
 
             dos.writeUTF("In queue!");
             players.add(socket);
@@ -502,12 +623,27 @@ public class Game_Server {
             if (players.size() >= n) {
                 dos.writeUTF("Starting Game...");
 
-                Thread t = new Game(players.get(0), players.get(1));
+                List<List<Character>> gameSpace = new ArrayList<>();
+
+                for (int i = 0; i < 3; i++) {
+                    List<Character> v = new ArrayList<>();
+                    for (int j = 0; j < 3; j++) {
+                        v.add(' ');
+                    }
+                    gameSpace.add(v);
+                }
+
+                Thread t = new Game(players.get(0), players.get(1), players_name.get(0), players_name.get(1), gameSpace);
 
                 t.start();
 
                 players.remove(0);
                 players.remove(0);
+                tokens.remove(players_name.get(0));
+                tokens.remove(players_name.get(0));
+                players_name.remove(0);
+                players_name.remove(0);
+
             }
         }
 
@@ -530,7 +666,7 @@ public class Game_Server {
             this.name = null;
         }
 
-        public void menu() throws IOException {
+        public int menu() throws IOException {
             while (true) {
                 dos.writeUTF("");
                 dos.writeUTF("--------------------------");
@@ -559,13 +695,19 @@ public class Game_Server {
 
                 if (line == 2) {
                     if (login()) {
+                        if (tokens.containsKey(name)) {
+                            System.out.println("IT IS WORKING");
+                            return 1;
+                        }
+
+
                         break;
                     }
                 }
 
             }
 
-            return;
+            return 0;
         }
 
         public boolean register() throws IOException {
@@ -639,7 +781,6 @@ public class Game_Server {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 lineNum++;
-                System.out.println(line);
                 if(line.equals(fin)) {
                     dos.writeUTF("Login Successful!");
                     return true;

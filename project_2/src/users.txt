@@ -1,8 +1,6 @@
 Eduardo | pass
 Monica | qwerty
-Joao | asd
-jo | jo
-Ludwig | mogul
 Judge | dread
-God | damn
-Teste | teste
+Judge | 50
+jo | jo
+jotaro | star
