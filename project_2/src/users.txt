@@ -4,3 +4,4 @@ Judge | dread
 Judge | 50
 jo | jo
 jotaro | star
+Discord | ping
