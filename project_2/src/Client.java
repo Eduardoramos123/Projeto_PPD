@@ -33,7 +33,9 @@ public class Client {
                 String line = dis.readUTF();
                 while( !line.equals("done"))
                 {
-                    System.out.println( line );
+                    if (!line.equals("ping")) {
+                        System.out.println( line );
+                    }
                     line = dis.readUTF();
                 }
                 String tosend = scn.nextLine();

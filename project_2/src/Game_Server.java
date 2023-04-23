@@ -849,8 +849,64 @@ public class Game_Server {
                 players_name.remove(0);
                 players_name.remove(0);
 
+
             }
+
+            while (waiting(auth.name)) {
+                try {
+                    dos.writeUTF("ping");
+                } catch (IOException e) {
+                    break;
+                }
+            }
+
+            int index = getIndexToRemove(auth.name);
+            players.remove(index);
+            players_name.remove(index);
+
+            //keepAlive(socket, auth.name);
         }
+
+        public boolean waiting(String name) {
+            for (String n : players_name) {
+                if (name.equals(n)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public int getIndexToRemove(String name) {
+            int i = 0;
+            for (String str : players_name) {
+                if (name.equals(str)) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+
+        public void keepAlive(Socket socket, String name) throws IOException {
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+            while (true) {
+                try {
+                    dos.writeUTF("ping");
+                } catch (IOException e) {
+                    int index = getIndexToRemove(name);
+
+                    players.remove(index);
+                    players_name.remove(index);
+
+                    break;
+                }
+            }
+
+            return;
+        }
+
 
     }
 
