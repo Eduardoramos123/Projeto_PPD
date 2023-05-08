@@ -752,6 +752,7 @@ public class Game_Server {
         Lobby lobby = new Lobby();
         lobby.start(n);
     }
+
     public static class Lobby {
         private static List<Socket> players = new ArrayList<>();
 
@@ -823,7 +824,9 @@ public class Game_Server {
             players.add(socket);
             players_name.add(auth.name);
 
-            System.out.println("Teste size: " + players.size());
+            System.out.println("Teste Players size: " + players.size());
+
+            //for(var playr: player)
 
             if (players.size() >= n) {
                 dos.writeUTF("Starting Game...");
@@ -918,6 +921,8 @@ public class Game_Server {
         private DataOutputStream dos;
         public String name;
 
+        public Player player_object;
+
 
         public Authentication(Socket socket) throws IOException {
             this.socket = socket;
@@ -925,6 +930,7 @@ public class Game_Server {
             this.dis = new DataInputStream(socket.getInputStream());
             this.dos = new DataOutputStream(socket.getOutputStream());
             this.name = null;
+            this.player_object = null;
         }
 
         public int menu() throws IOException {
@@ -950,6 +956,8 @@ public class Game_Server {
                 if (line == 1) {
                     if (register()) {
                         dos.writeUTF("Registration Complete");
+                        dos.writeUTF("--------------------------");
+                        dos.writeUTF("");
                         break;
                     }
                 }
@@ -987,15 +995,15 @@ public class Game_Server {
             this.name = name;
 
 
-
             dos.writeUTF("Password: ");
             dos.writeUTF("done");
 
-            String pass;
+            String password;
 
-            pass = dis.readUTF();
+            password = dis.readUTF();
 
-            String fin = name + " | " + pass + "\n";
+
+            String fin = name + " | " + password + "\n";
 
             File file = new File("users.txt");
             FileWriter fr = new FileWriter(file, true);
@@ -1004,6 +1012,10 @@ public class Game_Server {
 
             br.close();
             fr.close();
+
+            //player_object = new Player(name, password, socket);
+            // Player newPlayer = new Player.Player(name, password, socket);
+            // this.player_object = newPlayer;
 
             return true;
         }
@@ -1044,11 +1056,15 @@ public class Game_Server {
                 lineNum++;
                 if(line.equals(fin)) {
                     dos.writeUTF("Login Successful!");
+                    dos.writeUTF("--------------------------");
+                    dos.writeUTF("");
                     return true;
                 }
             }
 
             dos.writeUTF("Login Failed!");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("");
             return false;
         }
 
