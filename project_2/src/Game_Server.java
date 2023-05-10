@@ -2,19 +2,23 @@ import java.io.*;
 import java.lang.ClassNotFoundException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.util.*;
+import java.util.jar.Attributes.Name;
+import java.nio.file.Paths;
+import java.io.BufferedWriter;
 
 public class Game_Server {
     private static ServerSocket server;
-    private static int port = 9876;
-    private static List<String> players_name = new ArrayList<>();
+    private static int port = 9877;
+    //private static List<String> players_name = new ArrayList<>();
     private static Map<String, ConWrapper> tokens = new HashMap<>();
+    private static List<Player> active_players = new ArrayList<>();
 
 
     public static void main(String[] args) throws IOException {
         start(2);
     }
-
 
 
     public static class ConWrapper {
@@ -23,7 +27,7 @@ public class Game_Server {
 
         private String op_name;
 
-        private boolean first;
+        private boolean first; //is the the current player is the first player in the game??
 
 
         public ConWrapper(List<List<Character>> gs, Socket oponent, String op, boolean f) {
@@ -47,18 +51,11 @@ public class Game_Server {
     }
 
     public static class Game extends Thread {
-        private Socket player1;
-        private Socket player2;
-
-        DataInputStream dis_player1;
-        DataOutputStream dos_player1;
-        DataInputStream dis_player2;
-        DataOutputStream dos_player2;
-        private String player1_name;
-        private String player2_name;
-
+        
         private List<List<Character>> gameSpace = new ArrayList<>();
-        private boolean xfirst;
+
+        Player player_1;
+        Player player_2;
 
         public Game() {
             for (int i = 0; i < 3; i++) {
@@ -68,30 +65,70 @@ public class Game_Server {
                 }
                 gameSpace.add(v);
             }
-            dis_player1 = null;
-            dis_player2 = null;
-            dos_player1 = null;
-            dos_player2 = null;
-            player1_name = null;
-            player2_name = null;
+
+            player_1 = new Player();
+            player_2 = new Player();
         }
 
         public Game(Socket player1, Socket player2, String name1, String name2, List<List<Character>> gs, boolean xf) throws IOException {
-            this.player1 = player1;
-            this.player2 = player2;
-
-            this.dis_player1 = new DataInputStream(player1.getInputStream());
-            this.dis_player2 = new DataInputStream(player2.getInputStream());
-
-            this.dos_player1 = new DataOutputStream(player1.getOutputStream());
-            this.dos_player2 = new DataOutputStream(player2.getOutputStream());
-
-            this.player1_name = name1;
-            this.player2_name = name2;
+            player_1 = new Player(name1, player1, new DataInputStream(player1.getInputStream()), new DataOutputStream(player1.getOutputStream()), xf);
+            player_2 = new Player(name2, player2, new DataInputStream(player2.getInputStream()), new DataOutputStream(player2.getOutputStream()), !xf);
+            player_1.setRank(getRankByName(player_1.getName()));
 
             this.gameSpace = gs;
+        }
 
-            this.xfirst = xf;
+        public static int getRankByName(String player_name) throws FileNotFoundException{
+            File file = new File("rank.txt");
+            Scanner scanner = new Scanner(file);
+
+            while(scanner.hasNextLine()){
+                String line = scanner.nextLine();
+
+                String[] parts = line.split("\\|");
+                String name = parts[0].trim();
+                int rank = Integer.parseInt(parts[1].trim());
+
+                if (name.equals(player_name)) {
+                    return rank;
+                }
+            }
+            return 0;
+        }
+
+        private void updateRankInFile(String name, int newRank) throws IOException{
+            File file = new File("rank.txt");
+            Scanner scanner = new Scanner(file);
+
+            List<String> lines = new ArrayList<>();
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                lines.add(line);
+            }
+
+            int index=-1;
+            for(int i=0; i< lines.size();i++){
+                if(lines.get(i).startsWith(name)){
+                    index=i;
+                    break;
+                }
+            }
+
+            if (index != -1) {
+                String oldLine = lines.get(index);
+                String newLine = name + " | " + newRank;
+                lines.set(index, newLine);
+
+                FileWriter writer = new FileWriter(file);
+                for (String line : lines) {
+                    writer.write(line + "\n");
+                }
+                writer.close();
+
+            } else {
+                System.out.println("Username not found in file");
+            }
+
         }
 
         private void changeGameSpace(List<List<Character>> gs) {
@@ -247,6 +284,16 @@ public class Game_Server {
 
                 if (checkWin('o')) {
                     System.out.println("player O won!");
+                    // player 2 (0) wins
+                    if(player_1.isX()){
+                        player_1.decRank();
+                        player_2.incRank();
+                    }
+                    // player 1 (0) wins
+                    else{
+                        player_1.incRank();
+                        player_2.decRank();
+                    }
                     return;
                 }
                 if (checkTie()) {
@@ -260,6 +307,16 @@ public class Game_Server {
 
                 if (checkWin('x')) {
                     System.out.println("player X won!");
+                    // player 1 (x) wins
+                    if(player_1.isX()){
+                        player_1.incRank();
+                        player_2.decRank();
+                    }
+                    // player 2 (x) wins
+                    else{
+                        player_1.decRank();
+                        player_2.incRank();
+                    }
                     return;
                 }
                 if (checkTie()) {
@@ -272,19 +329,19 @@ public class Game_Server {
         }
 
         public void TCP_gameLoop() throws IOException {
-            dos_player1.writeUTF("");
-            dos_player1.writeUTF(player1_name + " VS " + player2_name);
-            dos_player1.writeUTF("");
+            player_1.getDos().writeUTF("");
+            player_1.getDos().writeUTF(player_1.getName() + " VS " + player_2.getName());
+            player_1.getDos().writeUTF("");
 
-            dos_player2.writeUTF("");
-            dos_player2.writeUTF(player1_name + " VS " + player2_name);
-            dos_player2.writeUTF("");
+            player_2.getDos().writeUTF("");
+            player_2.getDos().writeUTF(player_1.getName() + " VS " + player_2.getName());
+            player_2.getDos().writeUTF("");
 
 
             while (true) {
 
                 try {
-                    dos_player1.writeUTF(getBoard());
+                    player_1.getDos().writeUTF(getBoard());
                 } catch (IOException e) {
                     player1_disc();
                     return;
@@ -292,26 +349,40 @@ public class Game_Server {
 
 
                 if (checkWin('o')) {
-                    dos_player2.writeUTF(getBoard());
-                    dos_player1.writeUTF("player O won!");
-                    dos_player2.writeUTF("player O won!");
+                    player_2.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("player O won!");
+                    player_2.getDos().writeUTF("player O won!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    // player 2 (o) wins
+                    if(player_1.isX()){
+                        player_1.decRank();
+                        player_2.incRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
+                    // player 1 (o) wins
+                    else{
+                        player_2.decRank();
+                        player_1.incRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
 
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -319,26 +390,26 @@ public class Game_Server {
                     return;
                 }
                 if (checkTie()) {
-                    dos_player2.writeUTF(getBoard());
-                    dos_player1.writeUTF("Tie!");
-                    dos_player2.writeUTF("Tie!");
+                    player_2.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("Tie!");
+                    player_2.getDos().writeUTF("Tie!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -351,19 +422,19 @@ public class Game_Server {
                 int row;
 
                 try {
-                    dos_player1.writeUTF("Select Line(0-2):\n");
-                    dos_player1.writeUTF("done");
+                    player_1.getDos().writeUTF("Select Line(0-2):\n");
+                    player_1.getDos().writeUTF("done");
 
 
-                    received = dis_player1.readUTF();
+                    received = player_1.getDis().readUTF();
 
                     line = Integer.parseInt(received);
 
 
-                    dos_player1.writeUTF("Select Row(0-2):\n");
-                    dos_player1.writeUTF("done");
+                    player_1.getDos().writeUTF("Select Row(0-2):\n");
+                    player_1.getDos().writeUTF("done");
 
-                    received = dis_player1.readUTF();
+                    received = player_1.getDis().readUTF();
 
                     row = Integer.parseInt(received);
 
@@ -376,7 +447,7 @@ public class Game_Server {
                 }
 
                 try {
-                    dos_player2.writeUTF(getBoard());
+                    player_2.getDos().writeUTF(getBoard());
                 } catch (IOException e) {
                     player2_disc();
                     return;
@@ -384,26 +455,41 @@ public class Game_Server {
 
 
                 if (checkWin('x')) {
-                    dos_player1.writeUTF(getBoard());
-                    dos_player1.writeUTF("player X won!");
-                    dos_player2.writeUTF("player X won!");
+                    player_1.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("player X won!");
+                    player_2.getDos().writeUTF("player X won!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    // player 1 (x) wins
+                    if(player_1.isX()){
+                        player_1.incRank();
+                        player_2.decRank();
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                    }
+                    // player 2 (x) wins
+                    else{
+                        player_1.decRank();
+                        player_2.incRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -411,26 +497,26 @@ public class Game_Server {
                     return;
                 }
                 if (checkTie()) {
-                    dos_player1.writeUTF(getBoard());
-                    dos_player1.writeUTF("Tie!");
-                    dos_player2.writeUTF("Tie!");
+                    player_1.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("Tie!");
+                    player_2.getDos().writeUTF("Tie!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
 
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -439,20 +525,20 @@ public class Game_Server {
                 }
 
                 try {
-                    dos_player2.writeUTF("Select Line(0-2):\n");
-                    dos_player2.writeUTF("done");
+                    player_2.getDos().writeUTF("Select Line(0-2):\n");
+                    player_2.getDos().writeUTF("done");
 
 
-                    received = dis_player2.readUTF();
+                    received = player_2.getDis().readUTF();
 
 
 
                     line = Integer.parseInt(received);
 
-                    dos_player2.writeUTF("Select Row(0-2):\n");
-                    dos_player2.writeUTF("done");
+                    player_2.getDos().writeUTF("Select Row(0-2):\n");
+                    player_2.getDos().writeUTF("done");
 
-                    received = dis_player2.readUTF();
+                    received = player_2.getDis().readUTF();
 
                     row = Integer.parseInt(received);
 
@@ -468,18 +554,18 @@ public class Game_Server {
         }
 
         public void TCP_reverse_gameLoop() throws IOException {
-            dos_player1.writeUTF("");
-            dos_player1.writeUTF(player1_name + " VS " + player2_name);
-            dos_player1.writeUTF("");
+            player_1.getDos().writeUTF("");
+            player_1.getDos().writeUTF(player_1.getName() + " VS " + player_2.getName());
+            player_1.getDos().writeUTF("");
 
-            dos_player2.writeUTF("");
-            dos_player2.writeUTF(player1_name + " VS " + player2_name);
-            dos_player2.writeUTF("");
+            player_2.getDos().writeUTF("");
+            player_2.getDos().writeUTF(player_1.getName() + " VS " + player_2.getName());
+            player_2.getDos().writeUTF("");
 
 
             while (true) {
                 try {
-                    dos_player2.writeUTF(getBoard());
+                    player_2.getDos().writeUTF(getBoard());
                 } catch (IOException e) {
                     player2_disc();
                     return;
@@ -487,26 +573,41 @@ public class Game_Server {
 
 
                 if (checkWin('x')) {
-                    dos_player1.writeUTF(getBoard());
-                    dos_player1.writeUTF("player X won!");
-                    dos_player2.writeUTF("player X won!");
+                    player_1.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("player X won!");
+                    player_2.getDos().writeUTF("player X won!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    // player 1 (x) wins
+                    if(player_1.isX()){
+                        player_1.incRank();
+                        player_2.decRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
+                    // player 2 (x) wins
+                    else{
+                        player_1.decRank();
+                        player_2.incRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -514,26 +615,26 @@ public class Game_Server {
                     return;
                 }
                 if (checkTie()) {
-                    dos_player1.writeUTF(getBoard());
-                    dos_player1.writeUTF("Tie!");
-                    dos_player2.writeUTF("Tie!");
+                    player_1.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("Tie!");
+                    player_2.getDos().writeUTF("Tie!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
 
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -546,20 +647,20 @@ public class Game_Server {
                 int row;
 
                 try {
-                    dos_player2.writeUTF("Select Line(0-2):\n");
-                    dos_player2.writeUTF("done");
+                    player_2.getDos().writeUTF("Select Line(0-2):\n");
+                    player_2.getDos().writeUTF("done");
 
 
-                    received = dis_player2.readUTF();
+                    received = player_2.getDis().readUTF();
 
 
 
                     line = Integer.parseInt(received);
 
-                    dos_player2.writeUTF("Select Row(0-2):\n");
-                    dos_player2.writeUTF("done");
+                    player_2.getDos().writeUTF("Select Row(0-2):\n");
+                    player_2.getDos().writeUTF("done");
 
-                    received = dis_player2.readUTF();
+                    received = player_2.getDis().readUTF();
 
                     row = Integer.parseInt(received);
 
@@ -570,7 +671,7 @@ public class Game_Server {
                 }
 
                 try {
-                    dos_player1.writeUTF(getBoard());
+                    player_1.getDos().writeUTF(getBoard());
                 } catch (IOException e) {
                     player1_disc();
                     return;
@@ -578,26 +679,41 @@ public class Game_Server {
 
 
                 if (checkWin('o')) {
-                    dos_player2.writeUTF(getBoard());
-                    dos_player1.writeUTF("player O won!");
-                    dos_player2.writeUTF("player O won!");
+                    player_2.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("player O won!");
+                    player_2.getDos().writeUTF("player O won!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    // player 2 (o) wins
+                    if(player_1.isX()){
+                        player_1.decRank();
+                        player_2.incRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
+                    // player 1 (0) wins
+                    else{
+                        player_1.incRank();
+                        player_2.decRank();
+                        updateRankInFile(player_2.getName(), player_2.getRank());
+                        updateRankInFile(player_1.getName(), player_1.getRank());
+                    }
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -605,26 +721,26 @@ public class Game_Server {
                     return;
                 }
                 if (checkTie()) {
-                    dos_player2.writeUTF(getBoard());
-                    dos_player1.writeUTF("Tie!");
-                    dos_player2.writeUTF("Tie!");
+                    player_2.getDos().writeUTF(getBoard());
+                    player_1.getDos().writeUTF("Tie!");
+                    player_2.getDos().writeUTF("Tie!");
 
-                    dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
-                    dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_1.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
+                    player_2.getDos().writeUTF("You have been logged of Write \"Exit\" to quit!");
 
-                    tokens.remove(player1_name);
-                    tokens.remove(player2_name);
+                    tokens.remove(player_1.getName());
+                    tokens.remove(player_2.getName());
 
 
-                    dos_player1.writeUTF("done");
-                    dos_player2.writeUTF("done");
+                    player_1.getDos().writeUTF("done");
+                    player_2.getDos().writeUTF("done");
                     try
                     {
                         // closing resources
-                        this.dis_player1.close();
-                        this.dis_player2.close();
-                        this.dos_player1.close();
-                        this.dos_player2.close();
+                        this.player_1.getDis().close();
+                        this.player_2.getDis().close();
+                        this.player_1.getDos().close();
+                        this.player_2.getDos().close();
 
                     }catch(IOException e){
                         e.printStackTrace();
@@ -633,19 +749,19 @@ public class Game_Server {
                 }
 
                 try {
-                    dos_player1.writeUTF("Select Line(0-2):\n");
-                    dos_player1.writeUTF("done");
+                    player_1.getDos().writeUTF("Select Line(0-2):\n");
+                    player_1.getDos().writeUTF("done");
 
 
-                    received = dis_player1.readUTF();
+                    received = player_1.getDis().readUTF();
 
                     line = Integer.parseInt(received);
 
 
-                    dos_player1.writeUTF("Select Row(0-2):\n");
-                    dos_player1.writeUTF("done");
+                    player_1.getDos().writeUTF("Select Row(0-2):\n");
+                    player_1.getDos().writeUTF("done");
 
-                    received = dis_player1.readUTF();
+                    received = player_1.getDis().readUTF();
 
                     row = Integer.parseInt(received);
 
@@ -663,38 +779,36 @@ public class Game_Server {
         }
 
         public void player1_disc() throws IOException {
-            ConWrapper wrapper = new ConWrapper(gameSpace, player2, player2_name, true);
+            ConWrapper wrapper = new ConWrapper(gameSpace, player_2.getSocket(), player_2.getName(), true);
 
-            System.out.println(player1_name);
+            System.out.println(player_1.getName());
 
-            tokens.put(player1_name, wrapper);
+            tokens.put(player_1.getName(), wrapper);
 
 
-            dos_player2.writeUTF("Player " + player1_name + " Disconnected... Waiting to reconnect");
+            player_2.getDos().writeUTF("Player " + player_1.getName() + " Disconnected... Waiting to reconnect");
 
 
             return;
         }
 
         public void player2_disc() throws IOException {
-            ConWrapper wrapper = new ConWrapper(gameSpace, player1, player1_name, false);
+            ConWrapper wrapper = new ConWrapper(gameSpace, player_1.getSocket(), player_1.getName(), false);
 
-            System.out.println(player2_name);
+            System.out.println(player_2.getName());
 
-            tokens.put(player2_name, wrapper);
+            tokens.put(player_2.getName(), wrapper);
 
-            dos_player1.writeUTF("Player " + player2_name + " Disconnected... Waiting to reconnect");
+            player_1.getDos().writeUTF("Player " + player_2.getName() + " Disconnected... Waiting to reconnect");
 
             return;
         }
-
-
 
         @Override
         public void run()
         {
             try {
-                if (xfirst) {
+                if (player_1.isX()) {
                     TCP_gameLoop();
                 }
                 else {
@@ -707,47 +821,6 @@ public class Game_Server {
 
     }
 
-
-    public class Player {
-        public String name;
-        private String password;
-        private int rank;
-        private Socket socket;
-
-
-        public Player(String name, String password, Socket socket) {
-            this.name = name;
-            this.password = password;
-            this.rank = 0;
-            this.socket = socket;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public Socket getSocket() {
-            return socket;
-        }
-
-        public String getPass() {
-            return password;
-        }
-
-        public void incRank() {
-            this.rank = this.rank + 1;
-        }
-
-        public void decRank() {
-            this.rank = this.rank -1;
-        }
-
-        public int getRank() {
-            return rank;
-        }
-
-    }
-
     public static void start(int n) throws IOException {
         Lobby lobby = new Lobby();
         lobby.start(n);
@@ -755,15 +828,16 @@ public class Game_Server {
 
     public static class Lobby {
         private static List<Socket> players = new ArrayList<>();
+        
 
         public void start(int n) throws IOException{
             server = new ServerSocket(port);
 
             while(true){
                 System.out.println("Waiting for the client request");
+
                 Socket socket = server.accept();
                 System.out.println("Client Received!");
-
                 System.out.println("Assigning new thread for this client");
 
 
@@ -789,47 +863,45 @@ public class Game_Server {
 
 
                 //auth.logout();
-
-
                 // create a new thread object
-
-
                 // Invoking the start() method
 
             }
         }
 
         public void fila(Socket socket, int n) throws IOException {
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            DataOutputStream dos_central = new DataOutputStream(socket.getOutputStream());
             Authentication auth = new Authentication(socket);
             int check = auth.menu();
+            Player player = auth.player;
 
-            if (check == 1) {
+            if (check == 1) { // 1 if register and login is done
 
-                if (tokens.get(auth.name).first) {
-                    Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true);
+                if (tokens.get(player.getName()).first) {
+                    Thread q = new Game(socket, tokens.get(player.getName()).op_socket, player.getName(), tokens.get(player.getName()).op_name, tokens.get(player.getName()).gameSpace, true);
                     q.start();
                 }
                 else {
-                    Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false);
+                    Thread q = new Game(tokens.get(player.getName()).op_socket, socket, tokens.get(player.getName()).op_name, player.getName(), tokens.get(player.getName()).gameSpace, false);
                     q.start();
                 }
-
-
 
                 return;
             }
 
-            dos.writeUTF("In queue!");
-            players.add(socket);
-            players_name.add(auth.name);
+            dos_central.writeUTF("In queue!");
+            //players_name.add(player.getName());
+            active_players.add(player);
 
-            System.out.println("Teste Players size: " + players.size());
+            //System.out.println("Teste Players size: " + players.size());
+            System.out.println("Active Players size: " + active_players.size());
+            for(Player p: active_players){
+                System.out.println("Player: " + p.getName() + ", " + p.getRank());
+            }
 
-            //for(var playr: player)
-
-            if (players.size() >= n) {
-                dos.writeUTF("Starting Game...");
+            
+            if (active_players.size() >= n) {
+                dos_central.writeUTF("Starting Game...");
 
                 List<List<Character>> gameSpace = new ArrayList<>();
 
@@ -841,67 +913,74 @@ public class Game_Server {
                     gameSpace.add(v);
                 }
 
-                Thread t = new Game(players.get(0), players.get(1), players_name.get(0), players_name.get(1), gameSpace, true);
+
+                
+                Comparator<Player> rankComparator = new rankComparator();
+                Collections.sort(active_players, rankComparator);
+
+
+                Thread t = new Game(active_players.get(0).getSocket(), active_players.get(1).getSocket(), active_players.get(0).getName(), active_players.get(1).getName(), gameSpace, true);
 
                 t.start();
+                
+                tokens.remove(active_players.get(0).getName());
+                tokens.remove(active_players.get(0).getName());
+                active_players.remove(0);
+                active_players.remove(0);
+                
 
-                players.remove(0);
-                players.remove(0);
-                tokens.remove(players_name.get(0));
-                tokens.remove(players_name.get(0));
-                players_name.remove(0);
-                players_name.remove(0);
+                // tokens.remove(players_name.get(0));
+                // tokens.remove(players_name.get(0));
+                // players_name.remove(0);
+                // players_name.remove(0);
 
 
             }
 
-            while (waiting(auth.name)) {
+            while (waiting(player.getName())) {
                 try {
-                    dos.writeUTF("ping");
+                    dos_central.writeUTF("ping");
                 } catch (IOException e) {
                     break;
                 }
             }
 
-            int index = getIndexToRemove(auth.name);
-            players.remove(index);
-            players_name.remove(index);
+            int index = getIndexToRemove(player.getName());
+            active_players.remove(index);
+            //players.remove(index);
+            //players_name.remove(index);
 
-            //keepAlive(socket, auth.name);
+            //keepAlive(socket, player.getName());
         }
 
         public boolean waiting(String name) {
-            for (String n : players_name) {
-                if (name.equals(n)) {
+            for (Player n : active_players) {
+                if (name.equals(n.getName())) {
                     return true;
                 }
             }
             return false;
         }
-
         public int getIndexToRemove(String name) {
             int i = 0;
-            for (String str : players_name) {
-                if (name.equals(str)) {
+            for (Player n : active_players) {
+                if (name.equals(n.getName())) {
                     return i;
                 }
             }
 
             return -1;
         }
-
-
         public void keepAlive(Socket socket, String name) throws IOException {
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            DataOutputStream dos_central = new DataOutputStream(socket.getOutputStream());
 
             while (true) {
                 try {
-                    dos.writeUTF("ping");
+                    dos_central.writeUTF("ping");
                 } catch (IOException e) {
                     int index = getIndexToRemove(name);
 
-                    players.remove(index);
-                    players_name.remove(index);
+                    active_players.remove(index);
 
                     break;
                 }
@@ -909,62 +988,73 @@ public class Game_Server {
 
             return;
         }
+    }
 
+    public static class rankComparator implements Comparator<Player>{
 
+        @Override
+        public int compare(Player p1, Player p2) {
+            int rank1 = p1.getRank();
+            int rank2 = p2.getRank();
+
+            if (rank1 == rank2) {
+                int index1 = active_players.indexOf(p1);
+                int index2 = active_players.indexOf(p2);
+                return Integer.compare(index1, index2);
+
+            } else {
+                return Integer.compare(rank2, rank1);
+            }
+        }
     }
 
     public static class Authentication{
         // protocol for user registration
         // persist the registration data in a file.
-        private Socket socket;
-        private DataInputStream dis;
-        private DataOutputStream dos;
-        public String name;
 
-        public Player player_object;
+        public Player player;
 
 
         public Authentication(Socket socket) throws IOException {
-            this.socket = socket;
-
-            this.dis = new DataInputStream(socket.getInputStream());
-            this.dos = new DataOutputStream(socket.getOutputStream());
-            this.name = null;
-            this.player_object = null;
+            player = new Player();
+            player.setSocket(socket);
+            player.setDis_player(new DataInputStream(socket.getInputStream()));
+            player.setDos_player(new DataOutputStream(socket.getOutputStream()));
         }
 
         public int menu() throws IOException {
+            //return 1 if register and login is done
+
             while (true) {
-                dos.writeUTF("");
-                dos.writeUTF("--------------------------");
-                dos.writeUTF("        Tic-Tac-Toe");
-                dos.writeUTF("--------------------------");
-                dos.writeUTF("");
-                dos.writeUTF("Choose mode:");
-                dos.writeUTF("    1 - Register");
-                dos.writeUTF("    2 - Login");
-                dos.writeUTF("done");
+                //write menu
+                player.getDos().writeUTF("");
+                player.getDos().writeUTF("--------------------------");
+                player.getDos().writeUTF("        Tic-Tac-Toe");
+                player.getDos().writeUTF("--------------------------");
+                player.getDos().writeUTF("");
+                player.getDos().writeUTF("Choose mode:");
+                player.getDos().writeUTF("    1 - Register");
+                player.getDos().writeUTF("    2 - Login");
+                player.getDos().writeUTF("done");
 
-                String received;
+                //collect answer
+                int line = Integer.parseInt(player.getDis().readUTF());
+                System.out.println("line: " + line);
 
-                received = dis.readUTF();
-
-                int line = Integer.parseInt(received);
-
-                System.out.println(line);
-
+                //deal with answer
                 if (line == 1) {
                     if (register()) {
-                        dos.writeUTF("Registration Complete");
-                        dos.writeUTF("--------------------------");
-                        dos.writeUTF("");
+                        player.getDos().writeUTF("");
+                        player.getDos().writeUTF("Registration Complete");
+                        player.getDos().writeUTF("--------------------------");
+                        player.getDos().writeUTF("");
                         break;
                     }
                 }
 
                 if (line == 2) {
                     if (login()) {
-                        if (tokens.containsKey(name)) {
+                        if (tokens.containsKey(player.getName())) {
                             System.out.println("IT IS WORKING");
                             return 1;
                         }
@@ -981,30 +1071,26 @@ public class Game_Server {
 
         public boolean register() throws IOException {
 
-            dos.writeUTF("");
-            dos.writeUTF("--------------------------");
-            dos.writeUTF("        Register");
-            dos.writeUTF("--------------------------");
-            dos.writeUTF("Username: ");
-            dos.writeUTF("done");
+            player.getDos().writeUTF("");
+            player.getDos().writeUTF("--------------------------");
+            player.getDos().writeUTF("        Register");
+            player.getDos().writeUTF("--------------------------");
+            player.getDos().writeUTF("Username: ");
+            player.getDos().writeUTF("done");
 
-            String name;
+            String name = player.getDis().readUTF();
+            player.setName(name);
 
-            name = dis.readUTF();
-
-            this.name = name;
-
-
-            dos.writeUTF("Password: ");
-            dos.writeUTF("done");
-
-            String password;
-
-            password = dis.readUTF();
+            player.getDos().writeUTF("Password: ");
+            player.getDos().writeUTF("done");
 
 
-            String fin = name + " | " + password + "\n";
+            String password = player.getDis().readUTF();
+            player.setPassword(password);
 
+
+            String fin = player.getName() + " | " + player.getPassword() + "\n";
+            
             File file = new File("users.txt");
             FileWriter fr = new FileWriter(file, true);
             BufferedWriter br = new BufferedWriter(fr);
@@ -1013,66 +1099,67 @@ public class Game_Server {
             br.close();
             fr.close();
 
-            //player_object = new Player(name, password, socket);
-            // Player newPlayer = new Player.Player(name, password, socket);
-            // this.player_object = newPlayer;
+            String rank_line = player.getName() + " | " + player.getRank() + "\n";
+            file = new File("rank.txt");
+            fr = new FileWriter(file, true);
+            br = new BufferedWriter(fr);
+            br.write(rank_line);
+
+            br.close();
+            fr.close();
 
             return true;
         }
 
         public boolean login() throws IOException {
 
-            dos.writeUTF("");
-            dos.writeUTF("--------------------------");
-            dos.writeUTF("        Login");
-            dos.writeUTF("--------------------------");
-            dos.writeUTF("Username: ");
-            dos.writeUTF("done");
+            player.getDos().writeUTF("");
+            player.getDos().writeUTF("--------------------------");
+            player.getDos().writeUTF("        Login");
+            player.getDos().writeUTF("--------------------------");
+            player.getDos().writeUTF("Username: ");
+            player.getDos().writeUTF("done");
 
-            String name;
+            String name = player.getDis().readUTF();
+            player.setName(name);
+            player.setRank(Game.getRankByName(name));
 
-            name = dis.readUTF();
+            player.getDos().writeUTF("Password: ");
+            player.getDos().writeUTF("done");
 
-            this.name = name;
-
-
-            dos.writeUTF("Password: ");
-            dos.writeUTF("done");
-
-            String pass;
-
-            pass = dis.readUTF();
-
-            String fin = name + " | " + pass;
-
-
+            String pass = player.getDis().readUTF();
+            player.setPassword(pass);
+            
 
             File file = new File("users.txt");
             Scanner scanner = new Scanner(file);
+
+            String fin = name + " | " + pass;
 
             int lineNum = 0;
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 lineNum++;
                 if(line.equals(fin)) {
-                    dos.writeUTF("Login Successful!");
-                    dos.writeUTF("--------------------------");
-                    dos.writeUTF("");
+                    player.getDos().writeUTF("");
+                    player.getDos().writeUTF("Login Successful!");
+                    player.getDos().writeUTF("--------------------------");
+                    player.getDos().writeUTF("");
                     return true;
                 }
             }
 
-            dos.writeUTF("Login Failed!");
-            dos.writeUTF("--------------------------");
-            dos.writeUTF("");
+            player.getDos().writeUTF("Login Failed!");
+            player.getDos().writeUTF("--------------------------");
+            player.getDos().writeUTF("");
             return false;
         }
 
         public void logout() throws IOException {
-            dos.writeUTF("");
-            dos.writeUTF("You Have been Logged out!");
-            dos.writeUTF("Please write \"Exit\"");
-            dos.writeUTF("done");
+            player.getDos().writeUTF("");
+            player.getDos().writeUTF("You Have been Logged out!");
+            player.getDos().writeUTF("Please write \"Exit\"");
+            player.getDos().writeUTF("done");
         }
 
     }
