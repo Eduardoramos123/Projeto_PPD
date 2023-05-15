@@ -943,7 +943,6 @@ public class Game_Server {
                 }.start();
 
 
-
                 //auth.logout();
 
 
@@ -1236,21 +1235,38 @@ public class Game_Server {
         }
 
         public boolean waiting(String name) {
-            for (String n : players_name) {
-                if (name.equals(n)) {
-                    return true;
+            Lock playersNameLock = new ReentrantLock();
+            playersNameLock.lock();
+            try {
+                Iterator<String> iterator = players_name.iterator();
+                while (iterator.hasNext()) {
+                    String n = iterator.next();
+                    if (name.equals(n)) {
+                        return true;
+                    }
                 }
+                return false;
+            } finally {
+                playersNameLock.unlock();
             }
-            return false;
         }
 
         public boolean waiting_ranked(String name) {
-            for (String n : players_name_ranked) {
-                if (name.equals(n)) {
-                    return true;
+            Lock playersNameRankedLock = new ReentrantLock();
+            playersNameRankedLock.lock();
+            try {
+                Iterator<String> iterator = players_name_ranked.iterator();
+                while (iterator.hasNext()) {
+                    String n = iterator.next();
+                    if (name.equals(n)) {
+                        return true;
+                    }
                 }
+                return false;
+            } finally {
+                playersNameRankedLock.unlock();
             }
-            return false;
+
         }
 
         public int getIndexToRemove(String name) {
