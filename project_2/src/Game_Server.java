@@ -3,6 +3,8 @@ import java.lang.ClassNotFoundException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Game_Server {
     private static ServerSocket server;
@@ -991,8 +993,26 @@ public class Game_Server {
             }
 
             dos.writeUTF("In queue!");
-            players.add(socket);
-            players_name.add(auth.name);
+
+            // Lock objects for synchronization
+            Lock playersLock = new ReentrantLock();
+            Lock playersNameLock = new ReentrantLock();
+            Lock tokensLock = new ReentrantLock();
+
+            playersLock.lock();
+            try {
+                players.add(socket);
+            } finally {
+                playersLock.unlock();
+            }
+
+            playersNameLock.lock();
+            try {
+                players_name.add(auth.name);
+            } finally {
+                playersNameLock.unlock();
+            }
+
 
             System.out.println("Teste size: " + players.size());
 
@@ -1013,28 +1033,67 @@ public class Game_Server {
 
                 t.start();
 
-                players.remove(0);
-                players.remove(0);
-                tokens.remove(players_name.get(0));
-                tokens.remove(players_name.get(0));
-                players_name.remove(0);
-                players_name.remove(0);
-
-
-            }
-
-            while (waiting(auth.name)) {
+                playersLock.lock();
                 try {
-                    dos.writeUTF("ping");
-                } catch (IOException e) {
-                    break;
+                    players.remove(0);
+                    players.remove(0);
+                } finally {
+                    playersLock.unlock();
                 }
+
+                tokensLock.lock();
+                try {
+                    tokens.remove(players_name.get(0));
+                    tokens.remove(players_name.get(1));
+                } finally {
+                    tokensLock.unlock();
+                }
+
+                playersNameLock.lock();
+                try {
+                    players_name.remove(0);
+                    players_name.remove(0);
+                } finally {
+                    playersNameLock.unlock();
+                }
+
+
+
+
+
             }
+
+            playersNameLock.lock();
+            try {
+                while (waiting(auth.name)) {
+                    try {
+                        dos.writeUTF("ping");
+                    } catch (IOException e) {
+                        break;
+                    }
+                }
+            } finally {
+                playersNameLock.unlock();
+            }
+
 
             int index = getIndexToRemove(auth.name);
             if (index != -1) {
-                players.remove(index);
-                players_name.remove(index);
+
+                playersLock.lock();
+                try {
+                    players.remove(index);
+                } finally {
+                    playersLock.unlock();
+                }
+
+                playersNameLock.lock();
+                try {
+                    players_name.remove(index);
+                } finally {
+                    playersNameLock.unlock();
+                }
+
             }
 
             //keepAlive(socket, auth.name);
@@ -1056,10 +1115,33 @@ public class Game_Server {
 
 
             dos.writeUTF("In Ranked queue!");
+            Lock playersRankedLock = new ReentrantLock();
+            Lock playersNameRankedLock = new ReentrantLock();
+            Lock rankedLock = new ReentrantLock();
+            Lock tokensLock = new ReentrantLock();
+
             int index = ranks.size();
-            players_ranked.add(socket);
-            players_name_ranked.add(auth.name);
-            ranks.add(auth.rank);
+
+            playersRankedLock.lock();
+            try {
+                players_ranked.add(socket);
+            } finally {
+                playersRankedLock.unlock();
+            }
+
+            playersNameRankedLock.lock();
+            try {
+                players_name_ranked.add(auth.name);
+            } finally {
+                playersNameRankedLock.unlock();
+            }
+
+            rankedLock.lock();
+            try {
+                ranks.add(auth.rank);
+            } finally {
+                rankedLock.unlock();
+            }
 
             System.out.println("Teste size: " + players_ranked.size());
 
@@ -1095,27 +1177,76 @@ public class Game_Server {
 
                 t.start();
 
-                players_ranked.remove(players_ranked.get(indexes.get(0)));
-                players_ranked.remove(players_ranked.get(indexes.get(1)));
-                tokens.remove(players_name_ranked.get(indexes.get(0)));
-                tokens.remove(players_name_ranked.get(indexes.get(1)));
-                players_name_ranked.remove(players_name_ranked.get(indexes.get(0)));
-                players_name_ranked.remove(players_name_ranked.get(indexes.get(1)));
-                ranks.remove(indexes.get(0));
-                ranks.remove(indexes.get(1) - 1);
-            }
-
-            while (waiting_ranked(auth.name)) {
+                playersRankedLock.lock();
                 try {
-                    dos.writeUTF("ping");
-                } catch (IOException e) {
-                    break;
+                    players_ranked.remove(players_ranked.get(indexes.get(0)));
+                    players_ranked.remove(players_ranked.get(indexes.get(1)));
+                } finally {
+                    playersRankedLock.unlock();
                 }
+
+                tokensLock.lock();
+                try {
+                    tokens.remove(players_name_ranked.get(indexes.get(0)));
+                    tokens.remove(players_name_ranked.get(indexes.get(1)));
+                } finally {
+                    tokensLock.unlock();
+                }
+
+                playersNameRankedLock.lock();
+                try {
+                    players_name_ranked.remove(players_name_ranked.get(indexes.get(0)));
+                    players_name_ranked.remove(players_name_ranked.get(indexes.get(1)));
+                } finally {
+                    playersNameRankedLock.unlock();
+                }
+
+                rankedLock.lock();
+                try {
+                    ranks.remove(indexes.get(0));
+                    ranks.remove(indexes.get(1) - 1);
+                } finally {
+                    rankedLock.unlock();
+                }
+
+
+
             }
 
-            players_ranked.remove(socket);
-            players_name_ranked.remove(auth.name);
-            ranks.remove(index);
+            playersNameRankedLock.lock();
+            try {
+                while (waiting_ranked(auth.name)) {
+                    try {
+                        dos.writeUTF("ping");
+                    } catch (IOException e) {
+                        break;
+                    }
+                }
+            } finally {
+                playersNameRankedLock.unlock();
+            }
+
+            playersRankedLock.lock();
+            try {
+                players_ranked.remove(socket);
+            } finally {
+                playersRankedLock.unlock();
+            }
+
+            playersNameRankedLock.lock();
+            try {
+                players_name_ranked.remove(auth.name);
+            } finally {
+                playersNameRankedLock.unlock();
+            }
+
+            rankedLock.lock();
+            try {
+                ranks.remove(index);
+            } finally {
+                rankedLock.unlock();
+            }
+
         }
 
         public boolean waiting(String name) {
