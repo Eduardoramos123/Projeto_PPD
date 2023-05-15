@@ -946,7 +946,7 @@ public class Game_Server {
             }
 
             int index = getIndexToRemove(player.getName());
-            active_players.remove(index);
+            //active_players.remove(index);
             //players.remove(index);
             //players_name.remove(index);
 

@@ -1,9 +1,4 @@
-Eduardo | pass
-Monica | qwerty
-Judge | dread
-Judge | 50
-jo | jo
-jotaro | star
-Discord | ping
-Bruol | pass
-Antonio | xpto
+teste | teste
+teste2 | teste2
+teste3 | teste3
+teste4 | teste4
