@@ -8,6 +8,7 @@ public class Game_Server {
     private static ServerSocket server;
     private static int port = 9876;
     private static List<String> players_name = new ArrayList<>();
+    private static List<String> players_name_ranked = new ArrayList<>();
     private static Map<String, ConWrapper> tokens = new HashMap<>();
 
 
@@ -59,6 +60,7 @@ public class Game_Server {
 
         private List<List<Character>> gameSpace = new ArrayList<>();
         private boolean xfirst;
+        private boolean ranked;
 
         public Game() {
             for (int i = 0; i < 3; i++) {
@@ -76,7 +78,7 @@ public class Game_Server {
             player2_name = null;
         }
 
-        public Game(Socket player1, Socket player2, String name1, String name2, List<List<Character>> gs, boolean xf) throws IOException {
+        public Game(Socket player1, Socket player2, String name1, String name2, List<List<Character>> gs, boolean xf, boolean r) throws IOException {
             this.player1 = player1;
             this.player2 = player2;
 
@@ -92,6 +94,8 @@ public class Game_Server {
             this.gameSpace = gs;
 
             this.xfirst = xf;
+
+            this.ranked = r;
         }
 
         private void changeGameSpace(List<List<Character>> gs) {
@@ -305,6 +309,41 @@ public class Game_Server {
 
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
+
+                    if (ranked) {
+                        File file2 = new File("ranked.txt");
+                        Scanner scanner2 = new Scanner(file2);
+                        int rank;
+                        List<String> lines = new ArrayList<>();
+
+
+
+                        while (scanner2.hasNextLine()) {
+                            String line2 = scanner2.nextLine();
+                            if (line2.contains(player2_name)) {
+                                String[] arrOfStr = line2.split("\\| ");
+                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                line2 = player2_name + " | " + nr + "\n";
+                            }
+                            lines.add(line2);
+                        }
+
+                        FileWriter writerObj = new FileWriter("ranked.txt", false);
+                        writerObj.write("");
+                        writerObj.close();
+
+
+                        FileWriter fr2 = new FileWriter(file2, true);
+                        BufferedWriter br2 = new BufferedWriter(fr2);
+
+                        for (String l : lines) {
+                            br2.write(l);
+                        }
+
+                        br2.close();
+                        fr2.close();
+                    }
+
                     try
                     {
                         // closing resources
@@ -397,6 +436,42 @@ public class Game_Server {
 
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
+
+                    if (ranked) {
+                        File file2 = new File("ranked.txt");
+                        Scanner scanner2 = new Scanner(file2);
+                        int rank;
+                        List<String> lines = new ArrayList<>();
+
+
+
+                        while (scanner2.hasNextLine()) {
+                            String line2 = scanner2.nextLine();
+                            if (line2.contains(player1_name)) {
+                                String[] arrOfStr = line2.split("\\| ");
+                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                line2 = player1_name + " | " + nr + "\n";
+                            }
+                            lines.add(line2);
+                        }
+
+                        FileWriter writerObj = new FileWriter("ranked.txt", false);
+                        writerObj.write("");
+                        writerObj.close();
+
+
+                        FileWriter fr2 = new FileWriter(file2, true);
+                        BufferedWriter br2 = new BufferedWriter(fr2);
+
+                        for (String l : lines) {
+                            br2.write(l);
+                        }
+
+                        br2.close();
+                        fr2.close();
+                    }
+
+
                     try
                     {
                         // closing resources
@@ -500,6 +575,43 @@ public class Game_Server {
 
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
+
+                    if (ranked) {
+                        File file2 = new File("ranked.txt");
+                        Scanner scanner2 = new Scanner(file2);
+                        int rank;
+                        List<String> lines = new ArrayList<>();
+
+
+
+                        while (scanner2.hasNextLine()) {
+                            String line2 = scanner2.nextLine();
+                            if (line2.contains(player1_name)) {
+                                String[] arrOfStr = line2.split("\\| ");
+                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                line2 = player1_name + " | " + nr + "\n";
+                            }
+                            lines.add(line2);
+                        }
+
+                        FileWriter writerObj = new FileWriter("ranked.txt", false);
+                        writerObj.write("");
+                        writerObj.close();
+
+
+                        FileWriter fr2 = new FileWriter(file2, true);
+                        BufferedWriter br2 = new BufferedWriter(fr2);
+
+                        for (String l : lines) {
+                            br2.write(l);
+                        }
+
+                        br2.close();
+                        fr2.close();
+                    }
+
+
+
                     try
                     {
                         // closing resources
@@ -591,6 +703,43 @@ public class Game_Server {
 
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
+
+                    if (ranked) {
+                        File file2 = new File("ranked.txt");
+                        Scanner scanner2 = new Scanner(file2);
+                        int rank;
+                        List<String> lines = new ArrayList<>();
+
+
+
+                        while (scanner2.hasNextLine()) {
+                            String line2 = scanner2.nextLine();
+                            if (line2.contains(player2_name)) {
+                                String[] arrOfStr = line2.split("\\| ");
+                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                line2 = player2_name + " | " + nr + "\n";
+                            }
+                            lines.add(line2);
+                        }
+
+                        FileWriter writerObj = new FileWriter("ranked.txt", false);
+                        writerObj.write("");
+                        writerObj.close();
+
+
+                        FileWriter fr2 = new FileWriter(file2, true);
+                        BufferedWriter br2 = new BufferedWriter(fr2);
+
+                        for (String l : lines) {
+                            br2.write(l);
+                        }
+
+                        br2.close();
+                        fr2.close();
+                    }
+
+
+
                     try
                     {
                         // closing resources
@@ -754,6 +903,8 @@ public class Game_Server {
     }
     public static class Lobby {
         private static List<Socket> players = new ArrayList<>();
+        private static List<Socket> players_ranked = new ArrayList<>();
+        private static List<Integer> ranks = new ArrayList<>();
 
         public void start(int n) throws IOException{
             server = new ServerSocket(port);
@@ -781,6 +932,8 @@ public class Game_Server {
                             fila(socket, n);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
                         }
                     }
                 }.start();
@@ -798,19 +951,37 @@ public class Game_Server {
             }
         }
 
-        public void fila(Socket socket, int n) throws IOException {
+        public void fila(Socket socket, int n) throws IOException, InterruptedException {
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             Authentication auth = new Authentication(socket);
             int check = auth.menu();
 
+            if (check == 2) {
+                fila_ranked(socket, n, auth);
+                return;
+            }
+
             if (check == 1) {
+                if (auth.ranked_match) {
+                    if (tokens.get(auth.name).first) {
+                        Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, true);
+                        q.start();
+                    }
+                    else {
+                        Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, true);
+                        q.start();
+                    }
+
+                    return;
+                }
+
 
                 if (tokens.get(auth.name).first) {
-                    Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true);
+                    Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, false);
                     q.start();
                 }
                 else {
-                    Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false);
+                    Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, false);
                     q.start();
                 }
 
@@ -838,7 +1009,7 @@ public class Game_Server {
                     gameSpace.add(v);
                 }
 
-                Thread t = new Game(players.get(0), players.get(1), players_name.get(0), players_name.get(1), gameSpace, true);
+                Thread t = new Game(players.get(0), players.get(1), players_name.get(0), players_name.get(1), gameSpace, true, false);
 
                 t.start();
 
@@ -861,14 +1032,103 @@ public class Game_Server {
             }
 
             int index = getIndexToRemove(auth.name);
-            players.remove(index);
-            players_name.remove(index);
+            if (index != -1) {
+                players.remove(index);
+                players_name.remove(index);
+            }
 
             //keepAlive(socket, auth.name);
         }
 
+        public int getNumberRanks(int rank) {
+            int res = 0;
+            for (int r : ranks) {
+                if (r == rank) {
+                    res++;
+                }
+            }
+
+            return res;
+        }
+
+        public void fila_ranked(Socket socket, int n, Authentication auth) throws IOException, InterruptedException {
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+
+            dos.writeUTF("In Ranked queue!");
+            int index = ranks.size();
+            players_ranked.add(socket);
+            players_name_ranked.add(auth.name);
+            ranks.add(auth.rank);
+
+            System.out.println("Teste size: " + players_ranked.size());
+
+            int interval = 0;
+            int curr_rank = auth.rank;
+            List<Integer> indexes = new ArrayList<>();
+
+            if (getNumberRanks(curr_rank) >= n) {
+
+
+                int z = 0;
+                for (int r : ranks) {
+                    if (r == curr_rank) {
+                        indexes.add(z);
+                    }
+
+                    z++;
+                }
+
+                dos.writeUTF("Starting Ranked Game...");
+
+                List<List<Character>> gameSpace = new ArrayList<>();
+
+                for (int i = 0; i < 3; i++) {
+                    List<Character> v = new ArrayList<>();
+                    for (int j = 0; j < 3; j++) {
+                        v.add(' ');
+                    }
+                    gameSpace.add(v);
+                }
+
+                Thread t = new Game(players_ranked.get(indexes.get(0)), players_ranked.get(indexes.get(1)), players_name_ranked.get(indexes.get(0)), players_name_ranked.get(indexes.get(1)), gameSpace, true, true);
+
+                t.start();
+
+                players_ranked.remove(players_ranked.get(indexes.get(0)));
+                players_ranked.remove(players_ranked.get(indexes.get(1)));
+                tokens.remove(players_name_ranked.get(indexes.get(0)));
+                tokens.remove(players_name_ranked.get(indexes.get(1)));
+                players_name_ranked.remove(players_name_ranked.get(indexes.get(0)));
+                players_name_ranked.remove(players_name_ranked.get(indexes.get(1)));
+                ranks.remove(indexes.get(0));
+                ranks.remove(indexes.get(1) - 1);
+            }
+
+            while (waiting_ranked(auth.name)) {
+                try {
+                    dos.writeUTF("ping");
+                } catch (IOException e) {
+                    break;
+                }
+            }
+
+            players_ranked.remove(socket);
+            players_name_ranked.remove(auth.name);
+            ranks.remove(index);
+        }
+
         public boolean waiting(String name) {
             for (String n : players_name) {
+                if (name.equals(n)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public boolean waiting_ranked(String name) {
+            for (String n : players_name_ranked) {
                 if (name.equals(n)) {
                     return true;
                 }
@@ -917,6 +1177,8 @@ public class Game_Server {
         private DataInputStream dis;
         private DataOutputStream dos;
         public String name;
+        public Integer rank;
+        public boolean ranked_match;
 
 
         public Authentication(Socket socket) throws IOException {
@@ -961,14 +1223,35 @@ public class Game_Server {
                             return 1;
                         }
 
-
                         break;
                     }
                 }
 
             }
+            dos.writeUTF("");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("      Queue Selection");
+            dos.writeUTF("--------------------------");
+            dos.writeUTF("");
+            dos.writeUTF("Choose mode:");
+            dos.writeUTF("    1 - Simple");
+            dos.writeUTF("    2 - Ranked");
+            dos.writeUTF("done");
 
-            return 0;
+            String received;
+
+            received = dis.readUTF();
+
+            int line = Integer.parseInt(received);
+
+            System.out.println(line);
+
+            if (line == 1) {
+                ranked_match = false;
+                return 0;
+            }
+            ranked_match = true;
+            return 2;
         }
 
         public boolean register() throws IOException {
@@ -1004,6 +1287,18 @@ public class Game_Server {
 
             br.close();
             fr.close();
+
+            String fin2 = name + " | " + 0 + "\n";
+
+            File file2 = new File("ranked.txt");
+            FileWriter fr2 = new FileWriter(file2, true);
+            BufferedWriter br2 = new BufferedWriter(fr2);
+            br2.write(fin2);
+
+            br2.close();
+            fr2.close();
+
+            rank = 0;
 
             return true;
         }
@@ -1044,6 +1339,26 @@ public class Game_Server {
                 lineNum++;
                 if(line.equals(fin)) {
                     dos.writeUTF("Login Successful!");
+
+                    File file2 = new File("ranked.txt");
+                    Scanner scanner2 = new Scanner(file2);
+
+                    while (scanner2.hasNextLine()) {
+                        String line2 = scanner2.nextLine();
+                        if (line2.contains(name)) {
+                            String[] arrOfStr = line2.split("\\| ");
+                            rank = Integer.valueOf(arrOfStr[1]);
+
+                            System.out.println("Rank: " + rank);
+                        }
+                    }
+
+
+
+
+
+
+
                     return true;
                 }
             }
