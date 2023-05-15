@@ -6,7 +6,7 @@ import java.util.*;
 
 public class Game_Server {
     private static ServerSocket server;
-    private static int port = 9876;
+    private static int port = 9877;
     private static List<String> players_name = new ArrayList<>();
     private static Map<String, ConWrapper> tokens = new HashMap<>();
 
@@ -96,6 +96,80 @@ public class Game_Server {
 
         private void changeGameSpace(List<List<Character>> gs) {
             gameSpace = gs;
+        }
+
+        public int getRankByName(String player_name){
+            File file = new File("rank.txt");
+            try(Scanner scanner = new Scanner(file)) {
+                
+                while(scanner.hasNextLine()){
+                    String line = scanner.nextLine();
+    
+                    String[] parts = line.split("\\|");
+                    String name = parts[0].trim();
+                    int rank = Integer.parseInt(parts[1].trim());
+    
+                    if (name.equals(player_name)) {
+                        return rank;
+                    }
+                }
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            
+            return 0;
+        }
+
+        private void updateRankInFile(String name, int newRank) {
+            File file = new File("rank.txt");
+
+            if(newRank<0) 
+                newRank=0;
+
+            try(Scanner scanner = new Scanner(file)){
+                List<String> lines = new ArrayList<>();
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    lines.add(line);
+                }
+                int index=-1;
+                for(int i=0; i< lines.size();i++){
+                    if(lines.get(i).startsWith(name)){
+                        index=i;
+                        break;
+                    }
+                }
+
+                if (index != -1) {
+                    String oldLine = lines.get(index);
+                    String newLine = name + " | " + newRank;
+                    lines.set(index, newLine);
+
+                    FileWriter writer;
+                    try {
+                        writer = new FileWriter(file);
+                        for (String line : lines) {
+                            writer.write(line + "\n");
+                        }
+                        writer.close();
+    
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    
+                } else {
+                    System.out.println("Username not found in file");
+                }
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            
+            
+
         }
 
         private boolean horizontalWin(Character sym) {
@@ -247,6 +321,15 @@ public class Game_Server {
 
                 if (checkWin('o')) {
                     System.out.println("player O won!");
+                    if(xfirst){
+                        updateRankInFile(player1_name, getRankByName(player1_name)-1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)+1);
+                    }
+                    else{
+                        updateRankInFile(player1_name, getRankByName(player1_name)+1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)-1);
+                    }
+                        
                     return;
                 }
                 if (checkTie()) {
@@ -260,6 +343,14 @@ public class Game_Server {
 
                 if (checkWin('x')) {
                     System.out.println("player X won!");
+                    if(xfirst){
+                        updateRankInFile(player1_name, getRankByName(player1_name)+1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)-1);
+                    }
+                    else{
+                        updateRankInFile(player1_name, getRankByName(player1_name)-1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)+1);
+                    }
                     return;
                 }
                 if (checkTie()) {
@@ -301,6 +392,15 @@ public class Game_Server {
 
                     tokens.remove(player1_name);
                     tokens.remove(player2_name);
+
+                    if(xfirst){
+                        updateRankInFile(player1_name, getRankByName(player1_name)-1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)+1);
+                    }
+                    else{
+                        updateRankInFile(player1_name, getRankByName(player1_name)+1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)-1);
+                    }
 
 
                     dos_player1.writeUTF("done");
@@ -387,6 +487,15 @@ public class Game_Server {
                     dos_player1.writeUTF(getBoard());
                     dos_player1.writeUTF("player X won!");
                     dos_player2.writeUTF("player X won!");
+
+                    if(xfirst){
+                        updateRankInFile(player1_name, getRankByName(player1_name)+1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)-1);
+                    }
+                    else{
+                        updateRankInFile(player1_name, getRankByName(player1_name)-1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)+1);
+                    }
 
                     dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
@@ -491,6 +600,15 @@ public class Game_Server {
                     dos_player1.writeUTF("player X won!");
                     dos_player2.writeUTF("player X won!");
 
+                    if(xfirst){
+                        updateRankInFile(player1_name, getRankByName(player1_name)+1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)-1);
+                    }
+                    else{
+                        updateRankInFile(player1_name, getRankByName(player1_name)-1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)+1);
+                    }
+
                     dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
 
@@ -581,6 +699,15 @@ public class Game_Server {
                     dos_player2.writeUTF(getBoard());
                     dos_player1.writeUTF("player O won!");
                     dos_player2.writeUTF("player O won!");
+
+                    if(xfirst){
+                        updateRankInFile(player1_name, getRankByName(player1_name)-1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)+1);
+                    }
+                    else{
+                        updateRankInFile(player1_name, getRankByName(player1_name)+1);
+                        updateRankInFile(player2_name, getRankByName(player2_name)-1);
+                    }
 
                     dos_player1.writeUTF("You have been logged of Write \"Exit\" to quit!");
                     dos_player2.writeUTF("You have been logged of Write \"Exit\" to quit!");
@@ -1001,6 +1128,15 @@ public class Game_Server {
             FileWriter fr = new FileWriter(file, true);
             BufferedWriter br = new BufferedWriter(fr);
             br.write(fin);
+
+            br.close();
+            fr.close();
+
+            String rank_line = name + " | " + "0" + "\n";
+            file = new File("rank.txt");
+            fr = new FileWriter(file, true);
+            br = new BufferedWriter(fr);
+            br.write(rank_line);
 
             br.close();
             fr.close();
