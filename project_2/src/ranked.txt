@@ -1,7 +1,9 @@
-Eduardo | 2
+Eduardo | 3
+
 
 jo | 0
-Monica | 1
+Monica | 2
+
 
 teste | 1
 

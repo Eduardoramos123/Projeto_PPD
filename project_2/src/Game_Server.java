@@ -3,6 +3,8 @@ import java.lang.ClassNotFoundException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -12,7 +14,6 @@ public class Game_Server {
     private static List<String> players_name = new ArrayList<>();
     private static List<String> players_name_ranked = new ArrayList<>();
     private static Map<String, ConWrapper> tokens = new HashMap<>();
-
 
     public static void main(String[] args) throws IOException {
         start(2);
@@ -907,6 +908,7 @@ public class Game_Server {
         private static List<Socket> players = new ArrayList<>();
         private static List<Socket> players_ranked = new ArrayList<>();
         private static List<Integer> ranks = new ArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(100); // Create a thread pool with 10 threads
 
         public void start(int n) throws IOException{
             server = new ServerSocket(port);
@@ -964,27 +966,13 @@ public class Game_Server {
             }
 
             if (check == 1) {
-                if (auth.ranked_match) {
-                    if (tokens.get(auth.name).first) {
-                        Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, true);
-                        q.start();
-                    }
-                    else {
-                        Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, true);
-                        q.start();
-                    }
-
-                    return;
-                }
-
-
                 if (tokens.get(auth.name).first) {
-                    Thread q = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, false);
-                    q.start();
+                    Runnable gameTask = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, false);
+                    executor.submit(gameTask);
                 }
                 else {
-                    Thread q = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, false);
-                    q.start();
+                    Runnable gameTask = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, false);
+                    executor.submit(gameTask);
                 }
 
 
@@ -1029,9 +1017,8 @@ public class Game_Server {
                     gameSpace.add(v);
                 }
 
-                Thread t = new Game(players.get(0), players.get(1), players_name.get(0), players_name.get(1), gameSpace, true, false);
-
-                t.start();
+                Runnable gameTask = new Game(players.get(0), players.get(1), players_name.get(0), players_name.get(1), gameSpace, true, false);
+                executor.submit(gameTask);
 
                 playersLock.lock();
                 try {
@@ -1173,9 +1160,8 @@ public class Game_Server {
                     gameSpace.add(v);
                 }
 
-                Thread t = new Game(players_ranked.get(indexes.get(0)), players_ranked.get(indexes.get(1)), players_name_ranked.get(indexes.get(0)), players_name_ranked.get(indexes.get(1)), gameSpace, true, true);
-
-                t.start();
+                Runnable gameTask = new Game(players_ranked.get(indexes.get(0)), players_ranked.get(indexes.get(1)), players_name_ranked.get(indexes.get(0)), players_name_ranked.get(indexes.get(1)), gameSpace, true, true);
+                executor.submit(gameTask);
 
                 playersRankedLock.lock();
                 try {
