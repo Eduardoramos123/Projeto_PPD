@@ -322,7 +322,7 @@ public class Game_Server {
                             String line2 = scanner2.nextLine();
                             if (line2.contains(player2_name)) {
                                 String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
                                 line2 = player2_name + " | " + nr + "\n";
                             }
                             lines.add(line2);
@@ -337,7 +337,7 @@ public class Game_Server {
                         BufferedWriter br2 = new BufferedWriter(fr2);
 
                         for (String l : lines) {
-                            br2.write(l);
+                            br2.write(l + "\n");
                         }
 
                         br2.close();
@@ -449,7 +449,7 @@ public class Game_Server {
                             String line2 = scanner2.nextLine();
                             if (line2.contains(player1_name)) {
                                 String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
                                 line2 = player1_name + " | " + nr + "\n";
                             }
                             lines.add(line2);
@@ -464,7 +464,7 @@ public class Game_Server {
                         BufferedWriter br2 = new BufferedWriter(fr2);
 
                         for (String l : lines) {
-                            br2.write(l);
+                            br2.write(l + "\n");
                         }
 
                         br2.close();
@@ -588,7 +588,7 @@ public class Game_Server {
                             String line2 = scanner2.nextLine();
                             if (line2.contains(player1_name)) {
                                 String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
                                 line2 = player1_name + " | " + nr + "\n";
                             }
                             lines.add(line2);
@@ -603,7 +603,7 @@ public class Game_Server {
                         BufferedWriter br2 = new BufferedWriter(fr2);
 
                         for (String l : lines) {
-                            br2.write(l);
+                            br2.write(l + "\n");
                         }
 
                         br2.close();
@@ -716,7 +716,7 @@ public class Game_Server {
                             String line2 = scanner2.nextLine();
                             if (line2.contains(player2_name)) {
                                 String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1] + 1));
+                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
                                 line2 = player2_name + " | " + nr + "\n";
                             }
                             lines.add(line2);
@@ -731,7 +731,7 @@ public class Game_Server {
                         BufferedWriter br2 = new BufferedWriter(fr2);
 
                         for (String l : lines) {
-                            br2.write(l);
+                            br2.write(l + "\n");
                         }
 
                         br2.close();
@@ -1278,7 +1278,7 @@ public class Game_Server {
 
             pass = dis.readUTF();
 
-            String fin = name + " | " + pass + "\n";
+            String fin = "\n" + name + " | " + pass + "\n";
 
             File file = new File("users.txt");
             FileWriter fr = new FileWriter(file, true);
@@ -1288,7 +1288,7 @@ public class Game_Server {
             br.close();
             fr.close();
 
-            String fin2 = name + " | " + 0 + "\n";
+            String fin2 = "\n" + name + " | " + 0 + "\n";
 
             File file2 = new File("ranked.txt");
             FileWriter fr2 = new FileWriter(file2, true);
