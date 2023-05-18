@@ -1307,9 +1307,8 @@ public class Game_Server {
             Lock playersNameRankedLock = new ReentrantLock();
             playersNameRankedLock.lock();
             try {
-                Iterator<String> iterator = players_name_ranked.iterator();
-                while (iterator.hasNext()) {
-                    String n = iterator.next();
+                List<String> copy = new ArrayList<>(players_name_ranked);
+                for (String n : copy) {
                     if (name.equals(n)) {
                         return true;
                     }
@@ -1318,7 +1317,6 @@ public class Game_Server {
             } finally {
                 playersNameRankedLock.unlock();
             }
-
         }
 
         public int getIndexToRemove(String name) {
