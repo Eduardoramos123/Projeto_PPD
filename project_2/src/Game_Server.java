@@ -28,13 +28,15 @@ public class Game_Server {
         private String op_name;
 
         private boolean first;
+        private boolean ranked;
 
 
-        public ConWrapper(List<List<Character>> gs, Socket oponent, String op, boolean f) {
+        public ConWrapper(List<List<Character>> gs, Socket oponent, String op, boolean f, boolean r) {
             gameSpace = gs;
             op_socket = oponent;
             op_name = op;
             first = f;
+            ranked = r;
         }
 
         public List<List<Character>> getGameSpace() {
@@ -313,38 +315,46 @@ public class Game_Server {
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
 
+                    ReentrantLock lock = new ReentrantLock();
                     if (ranked) {
                         File file2 = new File("ranked.txt");
-                        Scanner scanner2 = new Scanner(file2);
-                        int rank;
                         List<String> lines = new ArrayList<>();
 
-
-
-                        while (scanner2.hasNextLine()) {
-                            String line2 = scanner2.nextLine();
-                            if (line2.contains(player2_name)) {
-                                String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
-                                line2 = player2_name + " | " + nr + "\n";
+                        // Acquire the lock
+                        lock.lock();
+                        try {
+                            try (Scanner scanner2 = new Scanner(file2)) {
+                                while (scanner2.hasNextLine()) {
+                                    String line2 = scanner2.nextLine();
+                                    if (line2.contains(player1_name)) {
+                                        String[] arrOfStr = line2.split("\\| ");
+                                        int nr = Integer.parseInt(arrOfStr[1]) + 1;
+                                        line2 = player1_name + " | " + nr;
+                                    }
+                                    lines.add(line2);
+                                }
+                            } catch (FileNotFoundException e) {
+                                e.printStackTrace();
                             }
-                            lines.add(line2);
+
+                            try (FileWriter writerObj = new FileWriter("ranked.txt", false)) {
+                                writerObj.write("");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            try (FileWriter fr2 = new FileWriter(file2, true);
+                                 BufferedWriter br2 = new BufferedWriter(fr2)) {
+                                for (String l : lines) {
+                                    br2.write(l + "\n");
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        } finally {
+                            // Release the lock in a finally block to ensure it is always released
+                            lock.unlock();
                         }
-
-                        FileWriter writerObj = new FileWriter("ranked.txt", false);
-                        writerObj.write("");
-                        writerObj.close();
-
-
-                        FileWriter fr2 = new FileWriter(file2, true);
-                        BufferedWriter br2 = new BufferedWriter(fr2);
-
-                        for (String l : lines) {
-                            br2.write(l + "\n");
-                        }
-
-                        br2.close();
-                        fr2.close();
                     }
 
                     try
@@ -440,38 +450,46 @@ public class Game_Server {
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
 
+                    ReentrantLock lock = new ReentrantLock();
                     if (ranked) {
                         File file2 = new File("ranked.txt");
-                        Scanner scanner2 = new Scanner(file2);
-                        int rank;
                         List<String> lines = new ArrayList<>();
 
-
-
-                        while (scanner2.hasNextLine()) {
-                            String line2 = scanner2.nextLine();
-                            if (line2.contains(player1_name)) {
-                                String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
-                                line2 = player1_name + " | " + nr + "\n";
+                        // Acquire the lock
+                        lock.lock();
+                        try {
+                            try (Scanner scanner2 = new Scanner(file2)) {
+                                while (scanner2.hasNextLine()) {
+                                    String line2 = scanner2.nextLine();
+                                    if (line2.contains(player1_name)) {
+                                        String[] arrOfStr = line2.split("\\| ");
+                                        int nr = Integer.parseInt(arrOfStr[1]) + 1;
+                                        line2 = player1_name + " | " + nr;
+                                    }
+                                    lines.add(line2);
+                                }
+                            } catch (FileNotFoundException e) {
+                                e.printStackTrace();
                             }
-                            lines.add(line2);
+
+                            try (FileWriter writerObj = new FileWriter("ranked.txt", false)) {
+                                writerObj.write("");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            try (FileWriter fr2 = new FileWriter(file2, true);
+                                 BufferedWriter br2 = new BufferedWriter(fr2)) {
+                                for (String l : lines) {
+                                    br2.write(l + "\n");
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        } finally {
+                            // Release the lock in a finally block to ensure it is always released
+                            lock.unlock();
                         }
-
-                        FileWriter writerObj = new FileWriter("ranked.txt", false);
-                        writerObj.write("");
-                        writerObj.close();
-
-
-                        FileWriter fr2 = new FileWriter(file2, true);
-                        BufferedWriter br2 = new BufferedWriter(fr2);
-
-                        for (String l : lines) {
-                            br2.write(l + "\n");
-                        }
-
-                        br2.close();
-                        fr2.close();
                     }
 
 
@@ -579,38 +597,46 @@ public class Game_Server {
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
 
+                    ReentrantLock lock = new ReentrantLock();
                     if (ranked) {
                         File file2 = new File("ranked.txt");
-                        Scanner scanner2 = new Scanner(file2);
-                        int rank;
                         List<String> lines = new ArrayList<>();
 
-
-
-                        while (scanner2.hasNextLine()) {
-                            String line2 = scanner2.nextLine();
-                            if (line2.contains(player1_name)) {
-                                String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
-                                line2 = player1_name + " | " + nr + "\n";
+                        // Acquire the lock
+                        lock.lock();
+                        try {
+                            try (Scanner scanner2 = new Scanner(file2)) {
+                                while (scanner2.hasNextLine()) {
+                                    String line2 = scanner2.nextLine();
+                                    if (line2.contains(player1_name)) {
+                                        String[] arrOfStr = line2.split("\\| ");
+                                        int nr = Integer.parseInt(arrOfStr[1]) + 1;
+                                        line2 = player1_name + " | " + nr;
+                                    }
+                                    lines.add(line2);
+                                }
+                            } catch (FileNotFoundException e) {
+                                e.printStackTrace();
                             }
-                            lines.add(line2);
+
+                            try (FileWriter writerObj = new FileWriter("ranked.txt", false)) {
+                                writerObj.write("");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            try (FileWriter fr2 = new FileWriter(file2, true);
+                                 BufferedWriter br2 = new BufferedWriter(fr2)) {
+                                for (String l : lines) {
+                                    br2.write(l + "\n");
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        } finally {
+                            // Release the lock in a finally block to ensure it is always released
+                            lock.unlock();
                         }
-
-                        FileWriter writerObj = new FileWriter("ranked.txt", false);
-                        writerObj.write("");
-                        writerObj.close();
-
-
-                        FileWriter fr2 = new FileWriter(file2, true);
-                        BufferedWriter br2 = new BufferedWriter(fr2);
-
-                        for (String l : lines) {
-                            br2.write(l + "\n");
-                        }
-
-                        br2.close();
-                        fr2.close();
                     }
 
 
@@ -707,38 +733,46 @@ public class Game_Server {
                     dos_player1.writeUTF("done");
                     dos_player2.writeUTF("done");
 
+                    ReentrantLock lock = new ReentrantLock();
                     if (ranked) {
                         File file2 = new File("ranked.txt");
-                        Scanner scanner2 = new Scanner(file2);
-                        int rank;
                         List<String> lines = new ArrayList<>();
 
-
-
-                        while (scanner2.hasNextLine()) {
-                            String line2 = scanner2.nextLine();
-                            if (line2.contains(player2_name)) {
-                                String[] arrOfStr = line2.split("\\| ");
-                                int nr = Integer.parseInt((arrOfStr[1])) + 1;
-                                line2 = player2_name + " | " + nr + "\n";
+                        // Acquire the lock
+                        lock.lock();
+                        try {
+                            try (Scanner scanner2 = new Scanner(file2)) {
+                                while (scanner2.hasNextLine()) {
+                                    String line2 = scanner2.nextLine();
+                                    if (line2.contains(player2_name)) {
+                                        String[] arrOfStr = line2.split("\\| ");
+                                        int nr = Integer.parseInt(arrOfStr[1]) + 1;
+                                        line2 = player2_name + " | " + nr;
+                                    }
+                                    lines.add(line2);
+                                }
+                            } catch (FileNotFoundException e) {
+                                e.printStackTrace();
                             }
-                            lines.add(line2);
+
+                            try (FileWriter writerObj = new FileWriter("ranked.txt", false)) {
+                                writerObj.write("");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            try (FileWriter fr2 = new FileWriter(file2, true);
+                                 BufferedWriter br2 = new BufferedWriter(fr2)) {
+                                for (String l : lines) {
+                                    br2.write(l + "\n");
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        } finally {
+                            // Release the lock in a finally block to ensure it is always released
+                            lock.unlock();
                         }
-
-                        FileWriter writerObj = new FileWriter("ranked.txt", false);
-                        writerObj.write("");
-                        writerObj.close();
-
-
-                        FileWriter fr2 = new FileWriter(file2, true);
-                        BufferedWriter br2 = new BufferedWriter(fr2);
-
-                        for (String l : lines) {
-                            br2.write(l + "\n");
-                        }
-
-                        br2.close();
-                        fr2.close();
                     }
 
 
@@ -815,7 +849,7 @@ public class Game_Server {
         }
 
         public void player1_disc() throws IOException {
-            ConWrapper wrapper = new ConWrapper(gameSpace, player2, player2_name, true);
+            ConWrapper wrapper = new ConWrapper(gameSpace, player2, player2_name, true, ranked);
 
             System.out.println(player1_name);
 
@@ -829,7 +863,7 @@ public class Game_Server {
         }
 
         public void player2_disc() throws IOException {
-            ConWrapper wrapper = new ConWrapper(gameSpace, player1, player1_name, false);
+            ConWrapper wrapper = new ConWrapper(gameSpace, player1, player1_name, false, ranked);
 
             System.out.println(player2_name);
 
@@ -966,11 +1000,11 @@ public class Game_Server {
 
             if (check == 1) {
                 if (tokens.get(auth.name).first) {
-                    Runnable gameTask = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, false);
+                    Runnable gameTask = new Game(socket, tokens.get(auth.name).op_socket, auth.name, tokens.get(auth.name).op_name, tokens.get(auth.name).gameSpace, true, tokens.get(auth.name).ranked);
                     executor.submit(gameTask);
                 }
                 else {
-                    Runnable gameTask = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, false);
+                    Runnable gameTask = new Game(tokens.get(auth.name).op_socket, socket, tokens.get(auth.name).op_name, auth.name, tokens.get(auth.name).gameSpace, false, tokens.get(auth.name).ranked);
                     executor.submit(gameTask);
                 }
 
@@ -1044,17 +1078,17 @@ public class Game_Server {
                 }
 
 
-
-
-
+                return;
             }
 
+            boolean flag = true;
             playersNameLock.lock();
             try {
                 while (waiting(auth.name)) {
                     try {
                         dos.writeUTF("ping");
                     } catch (IOException e) {
+                        flag = false;
                         break;
                     }
                 }
@@ -1062,8 +1096,19 @@ public class Game_Server {
                 playersNameLock.unlock();
             }
 
+            if (flag) {
+                return;
+            }
 
-            int index = getIndexToRemove(auth.name);
+            int index;
+            playersLock.lock();
+            try {
+                index = getIndexToRemove(auth.name);
+            } finally {
+                playersLock.unlock();
+            }
+
+
             if (index != -1) {
 
                 playersLock.lock();
@@ -1165,7 +1210,7 @@ public class Game_Server {
                 playersRankedLock.lock();
                 try {
                     players_ranked.remove(players_ranked.get(indexes.get(0)));
-                    players_ranked.remove(players_ranked.get(indexes.get(1)));
+                    players_ranked.remove(players_ranked.get(indexes.get(1) - 1));
                 } finally {
                     playersRankedLock.unlock();
                 }
@@ -1173,7 +1218,7 @@ public class Game_Server {
                 tokensLock.lock();
                 try {
                     tokens.remove(players_name_ranked.get(indexes.get(0)));
-                    tokens.remove(players_name_ranked.get(indexes.get(1)));
+                    tokens.remove(players_name_ranked.get(indexes.get(1) - 1));
                 } finally {
                     tokensLock.unlock();
                 }
@@ -1181,7 +1226,7 @@ public class Game_Server {
                 playersNameRankedLock.lock();
                 try {
                     players_name_ranked.remove(players_name_ranked.get(indexes.get(0)));
-                    players_name_ranked.remove(players_name_ranked.get(indexes.get(1)));
+                    players_name_ranked.remove(players_name_ranked.get(indexes.get(1) - 1));
                 } finally {
                     playersNameRankedLock.unlock();
                 }
@@ -1195,8 +1240,10 @@ public class Game_Server {
                 }
 
 
-
+                return;
             }
+
+            boolean flag = true;
 
             playersNameRankedLock.lock();
             try {
@@ -1204,6 +1251,7 @@ public class Game_Server {
                     try {
                         dos.writeUTF("ping");
                     } catch (IOException e) {
+                        flag = false;
                         break;
                     }
                 }
@@ -1211,6 +1259,10 @@ public class Game_Server {
                 playersNameRankedLock.unlock();
             }
 
+
+            if (flag) {
+                return;
+            }
             playersRankedLock.lock();
             try {
                 players_ranked.remove(socket);

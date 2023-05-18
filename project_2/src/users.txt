@@ -4,3 +4,7 @@ jo | jo
 Monica | qwerty
 
 teste | teste
+
+rank | 0
+
+idk | pass
