@@ -2,9 +2,5 @@ Eduardo | 3
 jo | 1
 Monica | 2
 teste | 2
-
-
-
 rank | 2
-
 idk | 0
